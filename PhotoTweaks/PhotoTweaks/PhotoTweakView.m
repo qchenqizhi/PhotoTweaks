@@ -448,6 +448,8 @@ typedef NS_ENUM(NSInteger, CropCornerType) {
 @property (nonatomic, assign) CGFloat centerY;
 @property (nonatomic, assign) CGPoint originalPoint;
 
+@property (nonatomic, assign) CGFloat flipAngle;
+
 @end
 
 @implementation PhotoTweakView
@@ -522,11 +524,11 @@ typedef NS_ENUM(NSInteger, CropCornerType) {
         
         _slider = [[UISlider alloc] initWithFrame:CGRectMake(0, 0, 240, 20)];
         _slider.center = CGPointMake(CGRectGetWidth(self.bounds) / 2, CGRectGetHeight(self.bounds) - 135);
-        _slider.minimumValue = 0.0f;
-        _slider.maximumValue = 1.0f;
+        _slider.minimumValue = -M_PI;
+        _slider.maximumValue = M_PI;
         [_slider addTarget:self action:@selector(sliderValueChanged:) forControlEvents:UIControlEventValueChanged];
         [_slider addTarget:self action:@selector(sliderTouchEnded:) forControlEvents:UIControlEventTouchUpInside];
-        _slider.value = 0.5;
+        _slider.value = 0.0;
         [self addSubview:_slider];
         
         _resetBtn = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -535,7 +537,7 @@ typedef NS_ENUM(NSInteger, CropCornerType) {
         _resetBtn.titleLabel.font = [UIFont systemFontOfSize:14];
         [_resetBtn setTitleColor:[UIColor resetButtonColor] forState:UIControlStateNormal];
         [_resetBtn setTitleColor:[UIColor resetButtonHighlightedColor] forState:UIControlStateHighlighted];
-        [_resetBtn setTitle:NSLocalizedStringFromTable(@"RESET", @"PhotoTweaks", nil) forState:UIControlStateNormal];
+        [_resetBtn setTitle:NSLocalizedStringFromTable(@"Flip", @"PhotoTweaks", nil) forState:UIControlStateNormal];
         [_resetBtn addTarget:self action:@selector(resetBtnTapped:) forControlEvents:UIControlEventTouchUpInside];
         [self addSubview:_resetBtn];
         
@@ -583,8 +585,9 @@ typedef NS_ENUM(NSInteger, CropCornerType) {
     CGRect newCropBounds = CGRectMake(0, 0, scale * cropView.frame.size.width, scale * cropView.frame.size.height);
     
     // calculate the new bounds of scroll view
-    CGFloat width = cos(fabs(self.angle)) * newCropBounds.size.width + sin(fabs(self.angle)) * newCropBounds.size.height;
-    CGFloat height = sin(fabs(self.angle)) * newCropBounds.size.width + cos(fabs(self.angle)) * newCropBounds.size.height;
+    CGRect rotatedRect = CGRectApplyAffineTransform(newCropBounds, CGAffineTransformMakeRotation(self.angle));
+    CGFloat width = rotatedRect.size.width; //cos(fabs(self.angle)) * newCropBounds.size.width + sin(fabs(self.angle)) * newCropBounds.size.height;
+    CGFloat height = rotatedRect.size.height; //sin(fabs(self.angle)) * newCropBounds.size.width + cos(fabs(self.angle)) * newCropBounds.size.height;
     
     // calculate the zoom area of scroll view
     CGRect scaleFrame = cropView.frame;
@@ -674,12 +677,13 @@ typedef NS_ENUM(NSInteger, CropCornerType) {
     [self.cropView updateGridLines:NO];
     
     // rotate scroll view
-    self.angle = self.slider.value - 0.5;
+    self.angle = self.slider.value + self.flipAngle;
     self.scrollView.transform = CGAffineTransformMakeRotation(self.angle);
     
     // position scroll view
-    CGFloat width = cos(fabs(self.angle)) * self.cropView.frame.size.width + sin(fabs(self.angle)) * self.cropView.frame.size.height;
-    CGFloat height = sin(fabs(self.angle)) * self.cropView.frame.size.width + cos(fabs(self.angle)) * self.cropView.frame.size.height;
+    CGRect rotatedRect = CGRectApplyAffineTransform(self.cropView.frame, self.scrollView.transform);
+    CGFloat width = rotatedRect.size.width; //cos(fabs(self.angle)) * self.cropView.frame.size.width + sin(fabs(self.angle)) * self.cropView.frame.size.height;
+    CGFloat height = rotatedRect.size.height; //sin(fabs(self.angle)) * self.cropView.frame.size.width + cos(fabs(self.angle)) * self.cropView.frame.size.height;
     CGPoint center = self.scrollView.center;
     
     CGPoint contentOffset = self.scrollView.contentOffset;
@@ -708,12 +712,14 @@ typedef NS_ENUM(NSInteger, CropCornerType) {
 
 - (void)resetBtnTapped:(id)sender
 {
-    if (self.angle < 0 && self.angle > -M_PI_2) {
-        self.angle = -self.angle;
-        self.photoContentView.imageView.image = [UIImage imageWithCGImage:self.photoContentView.imageView.image.CGImage scale:1.0 orientation:UIImageOrientationUpMirrored];
-        self.scrollView.transform = CGAffineTransformMakeRotation(self.angle);
-        self.scrollView.contentOffset = CGPointMake(self.scrollView.contentSize.width - self.scrollView.contentOffset.x - self.scrollView.bounds.size.width, self.scrollView.contentOffset.y);
-    }
+    self.flipAngle = -self.angle - self.slider.value;
+    
+    self.angle = self.slider.value + self.flipAngle;
+
+    self.photoContentView.imageView.image = [UIImage imageWithCGImage:self.photoContentView.imageView.image.CGImage scale:1.0 orientation:UIImageOrientationUpMirrored];
+    self.scrollView.transform = CGAffineTransformMakeRotation(self.angle);
+    self.scrollView.contentOffset = CGPointMake(self.scrollView.contentSize.width - self.scrollView.contentOffset.x - self.scrollView.bounds.size.width, self.scrollView.contentOffset.y);
+
     
 //    [UIView animateWithDuration:0.25 animations:^{
 //        self.angle = 0;
