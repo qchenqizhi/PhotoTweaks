@@ -708,21 +708,28 @@ typedef NS_ENUM(NSInteger, CropCornerType) {
 
 - (void)resetBtnTapped:(id)sender
 {
-    [UIView animateWithDuration:0.25 animations:^{
-        self.angle = 0;
-        
-        self.scrollView.transform = CGAffineTransformIdentity;
-        self.scrollView.center = CGPointMake(CGRectGetWidth(self.frame) / 2, self.centerY);
-        self.scrollView.bounds = CGRectMake(0, 0, self.originalSize.width, self.originalSize.height);
-        self.scrollView.minimumZoomScale = 1;
-        [self.scrollView setZoomScale:1 animated:NO];
-        
-        self.cropView.frame = self.scrollView.frame;
-        self.cropView.center = self.scrollView.center;
-        [self updateMasks:NO];
-        
-        [self.slider setValue:0.5 animated:YES];
-    }];
+    if (self.angle < 0 && self.angle > -M_PI_2) {
+        self.angle = -self.angle;
+        self.photoContentView.imageView.image = [UIImage imageWithCGImage:self.photoContentView.imageView.image.CGImage scale:1.0 orientation:UIImageOrientationUpMirrored];
+        self.scrollView.transform = CGAffineTransformMakeRotation(self.angle);
+        self.scrollView.contentOffset = CGPointMake(self.scrollView.contentSize.width - self.scrollView.contentOffset.x - self.scrollView.bounds.size.width, self.scrollView.contentOffset.y);
+    }
+    
+//    [UIView animateWithDuration:0.25 animations:^{
+//        self.angle = 0;
+//        
+//        self.scrollView.transform = CGAffineTransformIdentity;
+//        self.scrollView.center = CGPointMake(CGRectGetWidth(self.frame) / 2, self.centerY);
+//        self.scrollView.bounds = CGRectMake(0, 0, self.originalSize.width, self.originalSize.height);
+//        self.scrollView.minimumZoomScale = 1;
+//        [self.scrollView setZoomScale:1 animated:NO];
+//        
+//        self.cropView.frame = self.scrollView.frame;
+//        self.cropView.center = self.scrollView.center;
+//        [self updateMasks:NO];
+//        
+//        [self.slider setValue:0.5 animated:YES];
+//    }];
 }
 
 - (CGPoint)photoTranslation
