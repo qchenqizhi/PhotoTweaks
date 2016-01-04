@@ -677,7 +677,7 @@ typedef NS_ENUM(NSInteger, CropCornerType) {
     [self.cropView updateGridLines:NO];
     
     // rotate scroll view
-    self.angle = self.slider.value + self.flipAngle;
+    self.angle = [self standardizeAngle:self.slider.value + self.flipAngle];
     self.scrollView.transform = CGAffineTransformMakeRotation(self.angle);
     
     // position scroll view
@@ -710,15 +710,39 @@ typedef NS_ENUM(NSInteger, CropCornerType) {
     [self.cropView dismissGridLines];
 }
 
+
+//make the angle between 0 - 360 degrees
+- (CGFloat)standardizeAngle:(CGFloat)angle
+{
+    if (angle >= 0 && angle <= 2 * M_PI) {
+        return angle;
+    }
+    else if (angle < 0) {
+        angle += 2 * M_PI;
+        return [self standardizeAngle:angle];
+    }
+    else {
+        angle -= 2 * M_PI;
+        return [self standardizeAngle:angle];
+    }
+}
+
 - (void)resetBtnTapped:(id)sender
 {
-    self.flipAngle = -self.angle - self.slider.value;
-    
-    self.angle = self.slider.value + self.flipAngle;
-
-    self.photoContentView.imageView.image = [UIImage imageWithCGImage:self.photoContentView.imageView.image.CGImage scale:1.0 orientation:UIImageOrientationUpMirrored];
-    self.scrollView.transform = CGAffineTransformMakeRotation(self.angle);
     self.scrollView.contentOffset = CGPointMake(self.scrollView.contentSize.width - self.scrollView.contentOffset.x - self.scrollView.bounds.size.width, self.scrollView.contentOffset.y);
+    
+    //make self.angle = -self.angle
+    self.flipAngle += -2.0 * self.angle;
+    self.angle = [self standardizeAngle:self.slider.value + self.flipAngle];
+
+    UIImage *image = self.photoContentView.imageView.image;
+    if (image.imageOrientation == UIImageOrientationUpMirrored) {
+        self.photoContentView.imageView.image = [UIImage imageWithCGImage:image.CGImage scale:image.scale orientation:UIImageOrientationUp];
+    }
+    else {
+        self.photoContentView.imageView.image = [UIImage imageWithCGImage:image.CGImage scale:image.scale orientation:UIImageOrientationUpMirrored];
+    }
+    self.scrollView.transform = CGAffineTransformMakeRotation(self.angle);
 
     
 //    [UIView animateWithDuration:0.25 animations:^{
